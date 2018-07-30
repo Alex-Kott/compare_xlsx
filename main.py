@@ -1,21 +1,30 @@
 import pandas as pd
+from pandas import DataFrame
 from openpyxl import load_workbook  # библиотеки для работы с эксель
-from openpyxl.utils import get_column_letter, column_index_from_string
-
-
 
 
 def parse_pegas(file_name):
-    pegas_wb = load_workbook(file_name)
-    worksheet = pegas_wb['Dannie']
-    df = pd.DataFrame(worksheet.values)
+    df = pd.read_excel(file_name, sheet_name='Dannie')
 
-    df = df.rename(index=str, columns={0: 'date',
-                                       1: 'branch_code',
-                                       2: 'cancellation_reason'})
+    df = df.rename(index=str, columns={'Дата включения': 'date',
+                                       'Код филиала': 'branch_code',
+                                       'Причина приостановки уплаты взносов': 'cancellation_reason'})
 
-    return df.groupby(['branch_code', 'date']).size()
+    return df
 
+
+def parse_drfs(file_name):
+    df = pd.read_excel(file_name, sheet_name='Лист1')
+
+    return df
+
+
+def analyze_pegas_data(data: DataFrame):
+    for name, group in data.groupby(['branch_code']):
+        # print(name)
+        for i in group.sort_values(by='date'):
+            pass
+        print('___________________')
 
 
 if __name__ == "__main__":
@@ -24,7 +33,14 @@ if __name__ == "__main__":
     fact_file_name = "dataset_fact_test.xlsx"
 
 
-    parse_pegas(pegas_file_name)
+    pegas_data = parse_pegas(pegas_file_name)
+    analyze_pegas_data(pegas_data)
+
+
+    # drfs_data = parse_drfs(drfs_file_name)
+
+
+
     exit()
 
 
