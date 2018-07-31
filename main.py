@@ -3,8 +3,7 @@ from typing import Iterable
 
 import pandas as pd
 from pandas import DataFrame
-from openpyxl import load_workbook, Workbook  # библиотеки для работы с эксель
-from openpyxl.styles import Alignment
+from openpyxl import load_workbook, Workbook
 from datetime import datetime, timedelta
 
 
@@ -18,8 +17,19 @@ def parse_pegas(file_name):
     return df
 
 
-def parse_drfs(file_name):
+def parse_drfs(file_name: str):
     df = pd.read_excel(file_name, sheet_name='Лист1')
+    # df = df.T
+    # df = df.drop([1])
+
+    df = df.reset_index(level=1, drop=True)
+
+    print(df.dropna(axis='columns'))
+
+    for i, row in df.iterrows():
+        print(row)
+    # for i, row in df.iterrows():
+    #     print(row.__dict__)
 
     return df
 
@@ -38,7 +48,7 @@ def date_range(dt: datetime, days: int) -> Iterable[datetime]:
         dt = dt + timedelta(days=1)
 
 
-def save_to_excel(data: defaultdict) -> None:
+def save_to_excel_pegas_data(data: defaultdict) -> None:
     wb = Workbook()
     for branche_code, supporting_dates in data.items():
 
@@ -74,7 +84,11 @@ def analyze_pegas_data(data: DataFrame):
         for i, row in group.iterrows():
             pegas_branch_to_date_map[branch_code].add(row['date'])
 
-    save_to_excel(pegas_branch_to_date_map)
+    save_to_excel_pegas_data(pegas_branch_to_date_map)
+
+
+def form_forecast_report(fact_data, pegas_data, drfs_data):
+    pass
 
 
 if __name__ == "__main__":
@@ -82,10 +96,10 @@ if __name__ == "__main__":
     drfs_file_name = "dataset_drfs_test.xlsx"
     fact_file_name = "dataset_fact_test.xlsx"
 
-    pegas_data = parse_pegas(pegas_file_name)
-    analyze_pegas_data(pegas_data)
+    # pegas_data = parse_pegas(pegas_file_name)
+    # analyze_pegas_data(pegas_data)
 
-    # drfs_data = parse_drfs(drfs_file_name)
+    drfs_data = parse_drfs(drfs_file_name)
 
     exit()
 
