@@ -1,4 +1,5 @@
-from collections import defaultdict, Iterable
+from collections import defaultdict
+from typing import Iterable
 
 import pandas as pd
 from pandas import DataFrame
