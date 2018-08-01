@@ -2,8 +2,8 @@ from collections import defaultdict
 from typing import Iterable
 
 import pandas as pd
-from pandas import DataFrame
-from openpyxl import load_workbook, Workbook
+from pandas import DataFrame, MultiIndex
+from openpyxl import Workbook
 from datetime import datetime, timedelta
 
 
@@ -17,19 +17,13 @@ def parse_pegas(file_name):
     return df
 
 
-def parse_drfs(file_name: str):
+def parse_drfs(file_name: str) -> DataFrame:
     df = pd.read_excel(file_name, sheet_name='Лист1')
-    # df = df.T
-    # df = df.drop([1])
 
-    df = df.reset_index(level=1, drop=True)
+    df = df.reset_index(level=[1, 2], drop=True).dropna().reset_index()
 
-    print(df.dropna(axis='columns'))
-
-    for i, row in df.iterrows():
-        print(row)
-    # for i, row in df.iterrows():
-    #     print(row.__dict__)
+    df = df.dropna().set_index('index')
+    df.index = df.index.map(int)
 
     return df
 
@@ -78,13 +72,26 @@ def save_to_excel_pegas_data(data: defaultdict) -> None:
     wb.save("test.xlsx")
 
 
-def analyze_pegas_data(data: DataFrame):
+def calc_pegas_periods(data: DataFrame):
     pegas_branch_to_date_map = defaultdict(set)
     for branch_code, group in data.groupby(['branch_code']):
         for i, row in group.iterrows():
             pegas_branch_to_date_map[branch_code].add(row['date'])
 
-    save_to_excel_pegas_data(pegas_branch_to_date_map)
+    branch_codes = [branch_code for branch_code, supporting_dates in pegas_branch_to_date_map.items()]
+    multi_index = MultiIndex.from_product([branch_codes, ['period_start', 'period_end', 'population']],
+                                          names=['branch_name', 'values'])
+
+    df = DataFrame([[]], index=multi_index)
+
+    day_range = 20
+    for branch_code, supporting_dates in data.items():
+        for support_date in supporting_dates:
+            for dt in date_range(support_date, day_range):
+                df = df.loc['branch_code', 'period_end'] = [branch_code, dt]
+
+
+    # save_to_excel_pegas_data(pegas_branch_to_date_map)
 
 
 def form_forecast_report(fact_data, pegas_data, drfs_data):
@@ -96,27 +103,7 @@ if __name__ == "__main__":
     drfs_file_name = "dataset_drfs_test.xlsx"
     fact_file_name = "dataset_fact_test.xlsx"
 
-    # pegas_data = parse_pegas(pegas_file_name)
-    # analyze_pegas_data(pegas_data)
+    pegas_raw_data = parse_pegas(pegas_file_name)
+    pegas_data = calc_pegas_periods(pegas_raw_data)
 
-    drfs_data = parse_drfs(drfs_file_name)
-
-    exit()
-
-    wb2 = load_workbook('dataset_fact_test.xlsx')
-
-    ws2 = wb2['Fact']
-
-    df = pd.DataFrame(ws2.values)  # Преобразуем Sheet в DataFrame
-
-    print(df.truncate())
-
-    data = ws2.values
-
-    cols = next(data)[1:]
-
-    cols_kvart = cols[4:len(cols):4].index  # назване колонок только с кварталами
-
-    data = list(data)  # Данные становятся списком
-
-    idx = [r[0] for r in data]  # заголовки все филиалы
+    # drfs_data = parse_drfs(drfs_file_name)
